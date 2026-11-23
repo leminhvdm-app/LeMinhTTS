@@ -1161,6 +1161,23 @@ Pane {
                             }
 
                             RowLayout {
+                                spacing: Theme.spacingXs
+                                Label {
+                                    text: qsTr("Mã máy (Key): ")
+                                    color: Theme.textMuted
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontSizeSm
+                                }
+                                Label {
+                                    text: typeof licenseController !== "undefined" ? licenseController.machineKey : ""
+                                    color: Theme.accent
+                                    font.family: "Consolas, monospace"
+                                    font.pixelSize: Theme.fontSizeSm
+                                    font.weight: Theme.fontWeightBold
+                                }
+                            }
+
+                            RowLayout {
                                 spacing: Theme.spacingSm
 
                                 AppButton {

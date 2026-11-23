@@ -26,6 +26,7 @@ from PySide6.QtQuick import QQuickItem, QQuickWindow, QSGRendererInterface
 from PySide6.QtQuickControls2 import QQuickStyle
 
 from vienetts_app import __version__
+from vienetts_app.features.licensing import LicenseController
 from vienetts_app.ui.audiobook_controller import AudiobookController
 from vienetts_app.ui.bridge import ShellBridge
 from vienetts_app.ui.controller import AppController
@@ -300,6 +301,10 @@ def create_app(
     update_controller = UpdateController()
     engine.rootContext().setContextProperty("updateController", update_controller)
     engine._update_controller = update_controller  # noqa: SLF001
+
+    license_controller = LicenseController()
+    engine.rootContext().setContextProperty("licenseController", license_controller)
+    engine._license_controller = license_controller  # noqa: SLF001
     # UI language: the translator must be installed BEFORE engine.load() so
     # qsTr/self.tr resolve in the startup language the controller pinned at
     # construction. Vietnamese is the source language — no catalog, no
@@ -394,6 +399,9 @@ def run_gui() -> int:
     # click is warm instead of eating the 1.4–1.6 s cold load. create_app
     # itself stays model-free (NFR-3.1) — offscreen tests never see this.
     QTimer.singleShot(500, controller.prewarm_engine)
+    license_controller = getattr(engine, "_license_controller", None)
+    if license_controller is not None:
+        QTimer.singleShot(1500, license_controller.verifyLicense)
     update_controller = getattr(engine, "_update_controller", None)
     if update_controller is not None:
         QTimer.singleShot(2500, lambda: update_controller.checkForUpdates(silent=True))

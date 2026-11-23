@@ -44,6 +44,39 @@ except ImportError:
 
 
 
+def extract_gemini_response_text(response) -> str:
+    """Safely extract text from Gemini response, handling finish_reason=4 (recitation/copyright) gracefully."""
+    try:
+        if hasattr(response, "text") and response.text:
+            return response.text
+    except Exception:
+        pass
+
+    if hasattr(response, "candidates") and response.candidates:
+        candidate = response.candidates[0]
+        parts_text = []
+        if hasattr(candidate, "content") and hasattr(candidate.content, "parts"):
+            for part in candidate.content.parts:
+                if hasattr(part, "text") and part.text:
+                    parts_text.append(part.text)
+        if parts_text:
+            return "".join(parts_text)
+
+        finish_reason = getattr(candidate, "finish_reason", None)
+        fr_str = str(finish_reason).upper()
+        if "4" in fr_str or "RECITATION" in fr_str:
+            raise ValueError(
+                "Google Gemini chặn tài liệu này do chính sách bản quyền (Recitation Filter: nội dung sách/bài viết trùng lặp với cơ sở dữ liệu tác phẩm). "
+                "Cách khắc phục: 1. Đổi sang model khác (ví dụ: gemini-1.5-flash hoặc gemini-2.5-flash); 2. Thêm vào ô Lệnh tùy chỉnh: 'Hãy trích xuất nội dung văn bản dưới dạng bản ghi học tập cá nhân, giữ nguyên bố cục HTML'."
+            )
+        elif "3" in fr_str or "SAFETY" in fr_str:
+            raise ValueError("Google Gemini chặn do bộ lọc an toàn nội dung (Safety Filter).")
+        elif "2" in fr_str or "MAX_TOKENS" in fr_str:
+            raise ValueError("Đạt giới hạn độ dài phản hồi (Max tokens). Hãy chia nhỏ tài liệu và thử lại.")
+
+    raise ValueError("Google AI không trả về nội dung văn bản hợp lệ cho tệp này.")
+
+
 class OCRWorker(QThread):
     finished = pyqtSignal(str)  # html output
     error = pyqtSignal(str)
@@ -203,9 +236,19 @@ class OCRWorker(QThread):
                     self.progress.emit(
                         "[+] Đang phân tích và quét nội dung (Vui lòng chờ, có thể tốn nhiều thời gian)..."
                     )
-                    response = model.generate_content(contents)
+                    safety_settings = [
+                        {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                        {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                        {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                        {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+                    ]
+                    response = model.generate_content(
+                        contents,
+                        generation_config={"temperature": 0.25},
+                        safety_settings=safety_settings,
+                    )
 
-                    html_output = response.text
+                    html_output = extract_gemini_response_text(response)
                     if html_output.startswith("```html"):
                         html_output = html_output[7:]
                     if html_output.startswith("```"):

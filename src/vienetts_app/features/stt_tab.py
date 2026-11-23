@@ -41,6 +41,7 @@ except ImportError:
     )
 
 from vienetts_app.features.media_tools import get_ffmpeg_path, get_startupinfo
+from vienetts_app.features.ocr_tab import extract_gemini_response_text
 
 VIDEO_EXTENSIONS = {
     ".mp4", ".mkv", ".avi", ".mov", ".webm", ".flv", ".wmv", ".ts", ".m4v", ".3gp"
@@ -211,8 +212,8 @@ class STTWorker(QThread):
                         self.progress.emit("[+] Đang phân tích giọng nói (Vui lòng chờ)...")
                         model = genai.GenerativeModel(self.model_name)
 
-                        response = model.generate_content(content_inputs)
-                        text_output = response.text.strip()
+                        response = model.generate_content(content_inputs, generation_config={"temperature": 0.2})
+                        text_output = extract_gemini_response_text(response).strip()
                         results.append(f"--- File: {os.path.basename(path)} ---\n{text_output}\n")
 
                         if uploaded_file is not None:

@@ -804,4 +804,118 @@ ApplicationWindow {
             }
         }
     }
+
+    // --- License Gate Overlay ---
+    Rectangle {
+        id: licenseGateOverlay
+        anchors.fill: parent
+        z: 9999
+        color: Qt.rgba(0, 0, 0, 0.85)
+        visible: typeof licenseController !== "undefined" && !licenseController.isLicensed
+
+        MouseArea {
+            anchors.fill: parent
+            preventStealing: true
+            hoverEnabled: true
+        }
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: Math.min(parent.width - 40, 520)
+            implicitHeight: gateCol.implicitHeight + Theme.spacingXl * 2
+            radius: Theme.radiusLg
+            color: Theme.bgElevated
+            border.color: Theme.accent
+            border.width: 1
+
+            ColumnLayout {
+                id: gateCol
+                anchors.fill: parent
+                anchors.margins: Theme.spacingXl
+                spacing: Theme.spacingMd
+
+                Label {
+                    text: qsTr("🔒 YÊU CẦU KÍCH HOẠT ỨNG DỤNG")
+                    color: Theme.accent
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontSizeLg
+                    font.weight: Theme.fontWeightBold
+                    Layout.alignment: Qt.AlignHCenter
+                }
+
+                Label {
+                    text: typeof licenseController !== "undefined" ? licenseController.statusMessage : qsTr("Ứng dụng chưa được kích hoạt")
+                    color: Theme.text
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontSizeSm
+                    wrapMode: Text.WordWrap
+                    horizontalAlignment: Text.AlignHCenter
+                    Layout.fillWidth: true
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 54
+                    radius: Theme.radiusMd
+                    color: Theme.surface
+                    border.color: Theme.borderSubtle
+                    border.width: 1
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: Theme.spacingSm
+                        spacing: Theme.spacingSm
+
+                        Label {
+                            text: qsTr("Mã máy:")
+                            color: Theme.textMuted
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSizeSm
+                        }
+
+                        Label {
+                            text: typeof licenseController !== "undefined" ? licenseController.machineKey : ""
+                            color: Theme.accent
+                            font.family: "Consolas, monospace"
+                            font.pixelSize: Theme.fontSizeBase
+                            font.weight: Theme.fontWeightBold
+                            Layout.fillWidth: true
+                            elide: Text.ElideRight
+                        }
+
+                        Button {
+                            text: qsTr("Sao chép")
+                            onClicked: if (typeof licenseController !== "undefined") licenseController.copyMachineKey()
+                        }
+                    }
+                }
+
+                Label {
+                    text: qsTr("Vui lòng gửi Mã máy trên cho Quản trị viên để được bật/mở app từ xa qua điện thoại.")
+                    color: Theme.textMuted
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontSizeXs
+                    wrapMode: Text.WordWrap
+                    horizontalAlignment: Text.AlignHCenter
+                    Layout.fillWidth: true
+                }
+
+                RowLayout {
+                    Layout.alignment: Qt.AlignHCenter
+                    spacing: Theme.spacingMd
+
+                    Button {
+                        text: qsTr("Kiểm tra lại trạng thái")
+                        enabled: typeof licenseController !== "undefined" && !licenseController.isChecking
+                        onClicked: if (typeof licenseController !== "undefined") licenseController.verifyLicense()
+                    }
+
+                    Button {
+                        text: qsTr("Thoát")
+                        onClicked: Qt.quit()
+                    }
+                }
+            }
+        }
+    }
 }

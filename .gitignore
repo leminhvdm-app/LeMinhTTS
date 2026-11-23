@@ -14,7 +14,7 @@ coverage.xml
 htmlcov/
 
 # Model weights / large binaries (fetched at build or runtime, never committed)
-models/
+/models/
 *.onnx
 *.safetensors
 tools/*.exe

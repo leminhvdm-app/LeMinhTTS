@@ -21,8 +21,11 @@ ApplicationWindow {
     readonly property real screenAvailW: Screen.desktopAvailableWidth > 0 ? Screen.desktopAvailableWidth : (Screen.width > 0 ? Screen.width : 1280)
     readonly property real screenAvailH: Screen.desktopAvailableHeight > 0 ? Screen.desktopAvailableHeight : (Screen.height > 0 ? Screen.height : 720)
 
-    width: Math.min(Math.max(640, screenAvailW * 0.9), (savedGeo && savedGeo.width) || 1120)
-    height: Math.min(Math.max(420, screenAvailH * 0.88), (savedGeo && savedGeo.height) || 720)
+    // Detect small / 14-inch laptops (e.g. 1366x768, or 1080p @ 150% scaling where screenAvailH <= 768)
+    readonly property bool isSmallScreen: screenAvailH <= 768 || screenAvailW <= 1366
+
+    width: Math.min(Math.max(640, screenAvailW * 0.95), (savedGeo && savedGeo.width) || Math.min(1160, screenAvailW * 0.95))
+    height: Math.min(Math.max(420, screenAvailH * 0.92), (savedGeo && savedGeo.height) || Math.min(740, screenAvailH * 0.92))
     x: (savedGeo && savedGeo.x !== undefined) ? Math.max(0, Math.min(savedGeo.x, screenAvailW - width)) : Math.max(0, (screenAvailW - width) / 2)
     y: (savedGeo && savedGeo.y !== undefined) ? Math.max(0, Math.min(savedGeo.y, screenAvailH - height)) : Math.max(0, (screenAvailH - height) / 2)
     visibility: (savedGeo && savedGeo.maximized === true) ? Window.Maximized : Window.AutomaticVisibility
@@ -49,9 +52,13 @@ ApplicationWindow {
     title: Qt.application.displayName
     color: Theme.bg
 
-    // At the supported 640 px minimum, reserve a working canvas for studio
-    // controls while keeping every navigation destination accessible by name.
-    readonly property bool compactLayout: width < 800
+    // Multi-dimensional responsive breakpoints:
+    // - compactWidth: window width < 800 (or user snapped window to half-screen)
+    // - compactHeight: window height < 750 (laptop 14 inch windowed or high scale)
+    // - compactLayout: backward-compatible alias for compactWidth (tested seam)
+    readonly property bool compactWidth: width < 800
+    readonly property bool compactHeight: height < 750
+    readonly property bool compactLayout: compactWidth
 
     function formatModelBytes(bytes) {
         if (bytes <= 0)
@@ -87,343 +94,430 @@ ApplicationWindow {
                 anchors.bottom: parent.bottom
                 width: 1
                 color: Theme.border
+                z: 2
             }
 
-            ColumnLayout {
-                id: navColumn
-                objectName: "navBar"
+            ScrollView {
+                id: sidebarScroll
                 anchors.fill: parent
-                anchors.margins: window.compactLayout ? Theme.spacingSm : Theme.spacingMd
-                spacing: Theme.spacingSm
+                contentWidth: availableWidth
+                clip: true
 
-                // --- Brand Header (FR-UX-3.1) ---
-                RowLayout {
-                    Layout.fillWidth: true
-                    Layout.alignment: window.compactLayout ? Qt.AlignHCenter : Qt.AlignLeft
-                    Layout.topMargin: Theme.spacingXs
-                    Layout.bottomMargin: Theme.spacingMd
-                    spacing: Theme.spacingSm
-
-                    // Brand Icon / Micro Waveform Box
-                    Rectangle {
-                        width: 36
-                        height: 36
-                        radius: Theme.radiusMd
-                        color: Theme.accentSubtle
-                        border.color: Theme.borderFocus
-                        border.width: 1
-                        clip: true
-
-                        Image {
-                            id: brandLogoImg
-                            anchors.fill: parent
-                            anchors.margins: 1
-                            source: "../assets/icons/icon_64x64.png"
-                            fillMode: Image.PreserveAspectFit
-                            mipmap: true
-                            visible: status === Image.Ready
-                        }
-
-                        RowLayout {
-                            anchors.centerIn: parent
-                            spacing: 2
-                            visible: !brandLogoImg.visible
-                            Rectangle { width: 3; height: 10; radius: 1.5; color: Theme.accent }
-                            Rectangle { width: 3; height: 18; radius: 1.5; color: Theme.accent }
-                            Rectangle { width: 3; height: 14; radius: 1.5; color: Theme.accent }
-                            Rectangle { width: 3; height: 8; radius: 1.5; color: Theme.accent }
-                        }
+                ScrollBar.vertical: ScrollBar {
+                    implicitWidth: 5
+                    policy: ScrollBar.AsNeeded
+                    visible: active || hovered
+                    contentItem: Rectangle {
+                        radius: 2.5
+                        color: Theme.border
+                        opacity: 0.7
                     }
-
-                    ColumnLayout {
-                        Layout.fillWidth: !window.compactLayout
-                        visible: !window.compactLayout
-                        spacing: 2
-
-                        RowLayout {
-                            spacing: Theme.spacingXs
-                            Label {
-                                text: qsTr("LeMinhTTS")
-                                color: Theme.text
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fontSizeLg
-                                font.weight: Theme.fontWeightBold
-                                font.letterSpacing: Theme.trackingTight
-                            }
-                            Rectangle {
-                                color: Theme.accentSubtle
-                                radius: Theme.radiusPill
-                                implicitHeight: 18
-                                implicitWidth: vLabel.implicitWidth + 10
-                                Label {
-                                    id: vLabel
-                                    anchors.centerIn: parent
-                                    text: Qt.application.displayName.replace("LeMinhTTS ", "")
-                                    color: Theme.accent
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontSizeXs
-                                    font.weight: Theme.fontWeightHeading
-                                }
-                            }
-                        }
-
-                        Label {
-                            text: qsTr("Nhà phát triển: Lê Minh")
-                            color: Theme.textMuted
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSizeXs
-                        }
-
-                        Label {
-                            text: qsTr("Liên hệ: leminh.vdm@gmail.com")
-                            color: Theme.textMuted
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSizeXs
-                        }
+                    background: Rectangle {
+                        color: "transparent"
                     }
                 }
 
-                // Section Label
-                SectionLabel {
-                    text: qsTr("Chức năng")
-                    visible: !window.compactLayout
-                    Layout.leftMargin: Theme.spacingXs
-                    Layout.topMargin: Theme.spacingXs
-                }
+                ColumnLayout {
+                    id: navColumn
+                    objectName: "navBar"
+                    width: sidebarScroll.availableWidth
+                    height: Math.max(sidebarScroll.availableHeight, navColumn.implicitHeight)
+                    spacing: window.compactHeight ? Theme.spacingXs : Theme.spacingSm
 
-                // --- Navigation Tabs ---
-                Repeater {
-                    model: bridge ? bridge.tabs : []
-
-                    Button {
-                        id: navButton
-                        required property var modelData
+                    // --- Brand Header (FR-UX-3.1) ---
+                    RowLayout {
                         Layout.fillWidth: true
-                        implicitHeight: window.compactLayout
-                            ? Theme.controlHitTarget : 38
-                        flat: true
-                        checked: bridge ? bridge.currentTab === modelData.id : false
-                        onClicked: if (bridge) bridge.setCurrentTab(modelData.id)
-                        Accessible.name: navButton.modelData ? navButton.modelData.label : ""
+                        Layout.alignment: window.compactLayout ? Qt.AlignHCenter : Qt.AlignLeft
+                        Layout.topMargin: window.compactHeight ? Theme.spacingXs : Theme.spacingSm
+                        Layout.bottomMargin: window.compactHeight ? Theme.spacingXs : Theme.spacingMd
+                        Layout.leftMargin: window.compactLayout ? Theme.spacingSm : Theme.spacingMd
+                        Layout.rightMargin: window.compactLayout ? Theme.spacingSm : Theme.spacingMd
+                        spacing: Theme.spacingSm
 
-                        HoverHandler {
-                            cursorShape: Qt.PointingHandCursor
-                        }
-                        contentItem: RowLayout {
-                            spacing: Theme.spacingSm
-
-                            // Active indicator pill
-                            Rectangle {
-                                width: 3
-                                height: 16
-                                radius: 1.5
-                                color: Theme.accent
-                                visible: navButton.checked
-                            }
-
-                            Item {
-                                width: 3
-                                height: 16
-                                visible: !navButton.checked
-                            }
-
-                            AppIcon {
-                                kind: navButton.modelData ? navButton.modelData.id : "text"
-                                iconColor: navButton.checked ? Theme.accent
-                                    : (navButton.hovered ? Theme.text : Theme.textMuted)
-                            }
-
-                            Label {
-                                text: navButton.modelData ? navButton.modelData.label : ""
-                                visible: !window.compactLayout
-                                color: navButton.checked ? Theme.accent : (navButton.hovered ? Theme.text : Theme.textMuted)
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fontSizeBase
-                                font.weight: navButton.checked ? Theme.fontWeightHeading : Theme.fontWeightNormal
-                                Layout.fillWidth: true
-                            }
-                        }
-
-                        background: Rectangle {
-                            radius: Theme.radiusMd
-                            color: navButton.checked ? Theme.accentSubtle : (navButton.hovered ? Theme.surfaceHover : "transparent")
-                            border.width: navButton.checked ? 1 : 0
-                            border.color: Theme.borderFocus
-
-                            Behavior on color { ColorAnimation { duration: Theme.durationFast } }
-                        }
-                    }
-                }
-
-                // --- Donate / QR Code Card ("Tặng Tôi 1 ly Cafe") -------------
-                Rectangle {
-                    id: qrCard
-                    Layout.fillWidth: true
-                    visible: !window.compactLayout
-                    radius: Theme.radiusMd
-                    color: Theme.surfaceAlt
-                    border.color: Theme.borderSubtle
-                    border.width: 1
-                    implicitHeight: qrCardCol.implicitHeight + Theme.spacingSm * 2
-
-                    ColumnLayout {
-                        id: qrCardCol
-                        anchors.fill: parent
-                        anchors.margins: Theme.spacingSm
-                        spacing: Theme.spacingXs
-
-                        Label {
-                            text: qsTr("☕ Tặng Tôi 1 ly Cafe")
-                            Layout.alignment: Qt.AlignHCenter
-                            color: Theme.text
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSizeSm
-                            font.weight: Theme.fontWeightBold
-                        }
-
+                        // Brand Icon / Micro Waveform Box
                         Rectangle {
-                            Layout.alignment: Qt.AlignHCenter
-                            width: 130
-                            height: 130
-                            radius: Theme.radiusSm
-                            color: "#FFFFFF"
-                            border.color: Theme.borderSubtle
+                            width: 36
+                            height: 36
+                            radius: Theme.radiusMd
+                            color: Theme.accentSubtle
+                            border.color: Theme.borderFocus
                             border.width: 1
                             clip: true
 
                             Image {
+                                id: brandLogoImg
                                 anchors.fill: parent
-                                anchors.margins: 4
-                                source: "../assets/QRCode.jpg"
+                                anchors.margins: 1
+                                source: "../assets/icons/icon_64x64.png"
                                 fillMode: Image.PreserveAspectFit
-                                smooth: true
                                 mipmap: true
+                                visible: status === Image.Ready
+                            }
+
+                            RowLayout {
+                                anchors.centerIn: parent
+                                spacing: 2
+                                visible: !brandLogoImg.visible
+                                Rectangle { width: 3; height: 10; radius: 1.5; color: Theme.accent }
+                                Rectangle { width: 3; height: 18; radius: 1.5; color: Theme.accent }
+                                Rectangle { width: 3; height: 14; radius: 1.5; color: Theme.accent }
+                                Rectangle { width: 3; height: 8; radius: 1.5; color: Theme.accent }
                             }
                         }
 
-                        Label {
-                            text: qsTr("Quét mã QR Momo / Ngân hàng")
-                            Layout.alignment: Qt.AlignHCenter
-                            color: Theme.textMuted
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSizeXs
-                        }
-                    }
+                        ColumnLayout {
+                            Layout.fillWidth: !window.compactLayout
+                            visible: !window.compactLayout
+                            spacing: 2
 
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: qrZoomDialog.open()
-                    }
-                }
-
-                Button {
-                    Layout.alignment: Qt.AlignHCenter
-                    visible: window.compactLayout
-                    flat: true
-                    implicitWidth: 40
-                    implicitHeight: 40
-                    ToolTip.visible: hovered
-                    ToolTip.text: qsTr("☕ Tặng Tôi 1 ly Cafe")
-                    onClicked: qrZoomDialog.open()
-                    contentItem: Text {
-                        text: "☕"
-                        font.pixelSize: 20
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    background: Rectangle {
-                        radius: Theme.radiusMd
-                        color: parent.hovered ? Theme.surfaceHover : "transparent"
-                    }
-                }
-
-                Item {
-                    Layout.fillHeight: true
-                }
-
-                // --- Engine Hardware Status Card (FR-UX-3.3) -------------------
-                Rectangle {
-                    Layout.fillWidth: true
-                    radius: Theme.radiusMd
-                    color: Theme.surfaceAlt
-                    border.color: Theme.borderSubtle
-                    border.width: 1
-                    implicitHeight: engineCardCol.implicitHeight + Theme.spacingSm * 2
-
-                    ColumnLayout {
-                        id: engineCardCol
-                        anchors.fill: parent
-                        anchors.margins: Theme.spacingSm
-                        spacing: Theme.spacingXs
-
-                        RowLayout {
-                            spacing: Theme.spacingXs
-                            Rectangle {
-                                width: 6
-                                height: 6
-                                radius: 3
-                                color: Theme.success
+                            RowLayout {
+                                spacing: Theme.spacingXs
+                                Label {
+                                    text: qsTr("LeMinhTTS")
+                                    color: Theme.text
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontSizeLg
+                                    font.weight: Theme.fontWeightBold
+                                    font.letterSpacing: Theme.trackingTight
+                                }
+                                Rectangle {
+                                    color: Theme.accentSubtle
+                                    radius: Theme.radiusPill
+                                    implicitHeight: 18
+                                    implicitWidth: vLabel.implicitWidth + 10
+                                    Label {
+                                        id: vLabel
+                                        anchors.centerIn: parent
+                                        text: Qt.application.displayName.replace("LeMinhTTS ", "")
+                                        color: Theme.accent
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fontSizeXs
+                                        font.weight: Theme.fontWeightHeading
+                                    }
+                                }
                             }
+
                             Label {
-                                text: qsTr("Phần cứng & Engine")
-                                visible: !window.compactLayout
-                                color: Theme.text
+                                text: qsTr("Nhà phát triển: Lê Minh")
+                                color: Theme.textMuted
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontSizeXs
-                                font.weight: Theme.fontWeightHeading
+                                visible: !window.compactHeight
                             }
-                            Item {
-                                Layout.fillWidth: !window.compactLayout
-                                visible: !window.compactLayout
+
+                            Label {
+                                text: qsTr("Liên hệ: leminh.vdm@gmail.com")
+                                color: Theme.textMuted
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSizeXs
+                                visible: !window.compactHeight
                             }
-                            StatusBadge {
-                                visible: !window.compactLayout
-                                dotVisible: false
-                                text: {
-                                    if (!controller)
-                                        return qsTr("Đang kiểm tra...");
-                                    switch (controller.modelState) {
-                                    case "ready":
-                                        return qsTr("Sẵn sàng");
-                                    case "downloading":
-                                        return qsTr("Đang tải mô hình...");
-                                    case "validating":
-                                        return qsTr("Đang kiểm tra...");
-                                    case "failed":
-                                        return qsTr("Lỗi mô hình");
-                                    case "unavailable":
-                                        return qsTr("Chưa có mô hình");
-                                    default:
-                                        return qsTr("Đang kiểm tra...");
-                                    }
+                        }
+                    }
+
+                    // Section Label
+                    SectionLabel {
+                        text: qsTr("Chức năng")
+                        visible: !window.compactLayout
+                        Layout.leftMargin: Theme.spacingMd
+                        Layout.topMargin: window.compactHeight ? 0 : Theme.spacingXs
+                    }
+
+                    // --- Navigation Tabs ---
+                    Repeater {
+                        model: bridge ? bridge.tabs : []
+
+                        Button {
+                            id: navButton
+                            required property var modelData
+                            Layout.fillWidth: true
+                            Layout.leftMargin: window.compactLayout ? Theme.spacingSm : Theme.spacingMd
+                            Layout.rightMargin: window.compactLayout ? Theme.spacingSm : Theme.spacingMd
+                            implicitHeight: window.compactLayout
+                                ? Theme.controlHitTarget
+                                : (window.compactHeight ? 34 : 38)
+                            flat: true
+                            checked: bridge ? bridge.currentTab === modelData.id : false
+                            onClicked: if (bridge) bridge.setCurrentTab(modelData.id)
+                            Accessible.name: navButton.modelData ? navButton.modelData.label : ""
+
+                            HoverHandler {
+                                cursorShape: Qt.PointingHandCursor
+                            }
+                            contentItem: RowLayout {
+                                spacing: Theme.spacingSm
+
+                                // Active indicator pill
+                                Rectangle {
+                                    width: 3
+                                    height: 16
+                                    radius: 1.5
+                                    color: Theme.accent
+                                    visible: navButton.checked
                                 }
-                                status: {
-                                    if (!controller)
-                                        return "neutral";
-                                    switch (controller.modelState) {
-                                    case "ready":
-                                        return "success";
-                                    case "failed":
-                                        return "error";
-                                    case "unavailable":
-                                        return "warning";
-                                    default:
-                                        return "neutral";
-                                    }
+
+                                Item {
+                                    width: 3
+                                    height: 16
+                                    visible: !navButton.checked
                                 }
+
+                                AppIcon {
+                                    kind: navButton.modelData ? navButton.modelData.id : "text"
+                                    iconColor: navButton.checked ? Theme.accent
+                                        : (navButton.hovered ? Theme.text : Theme.textMuted)
+                                }
+
+                                Label {
+                                    text: navButton.modelData ? navButton.modelData.label : ""
+                                    visible: !window.compactLayout
+                                    color: navButton.checked ? Theme.accent : (navButton.hovered ? Theme.text : Theme.textMuted)
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontSizeBase
+                                    font.weight: navButton.checked ? Theme.fontWeightHeading : Theme.fontWeightNormal
+                                    Layout.fillWidth: true
+                                }
+                            }
+
+                            background: Rectangle {
+                                radius: Theme.radiusMd
+                                color: navButton.checked ? Theme.accentSubtle : (navButton.hovered ? Theme.surfaceHover : "transparent")
+                                border.width: navButton.checked ? 1 : 0
+                                border.color: Theme.borderFocus
+
+                                Behavior on color { ColorAnimation { duration: Theme.durationFast } }
+                            }
+                        }
+                    }
+
+                    // --- Donate / QR Code Card ("Tặng Tôi 1 ly Cafe") -------------
+                    // 1. Full QR card when ample height is available
+                    Rectangle {
+                        id: qrCard
+                        Layout.fillWidth: true
+                        Layout.leftMargin: Theme.spacingMd
+                        Layout.rightMargin: Theme.spacingMd
+                        visible: !window.compactLayout && !window.compactHeight
+                        radius: Theme.radiusMd
+                        color: Theme.surfaceAlt
+                        border.color: Theme.borderSubtle
+                        border.width: 1
+                        implicitHeight: qrCardCol.implicitHeight + Theme.spacingSm * 2
+
+                        ColumnLayout {
+                            id: qrCardCol
+                            anchors.fill: parent
+                            anchors.margins: Theme.spacingSm
+                            spacing: Theme.spacingXs
+
+                            Label {
+                                text: qsTr("☕ Tặng Tôi 1 ly Cafe")
+                                Layout.alignment: Qt.AlignHCenter
+                                color: Theme.text
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSizeSm
+                                font.weight: Theme.fontWeightBold
+                            }
+
+                            Rectangle {
+                                Layout.alignment: Qt.AlignHCenter
+                                width: 130
+                                height: 130
+                                radius: Theme.radiusSm
+                                color: "#FFFFFF"
+                                border.color: Theme.borderSubtle
+                                border.width: 1
+                                clip: true
+
+                                Image {
+                                    anchors.fill: parent
+                                    anchors.margins: 4
+                                    source: "../assets/QRCode.jpg"
+                                    fillMode: Image.PreserveAspectFit
+                                    smooth: true
+                                    mipmap: true
+                                }
+                            }
+
+                            Label {
+                                text: qsTr("Quét mã QR Momo / Ngân hàng")
+                                Layout.alignment: Qt.AlignHCenter
+                                color: Theme.textMuted
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSizeXs
                             }
                         }
 
-                        Label {
-                            objectName: "engineReadout"
-                            Layout.fillWidth: true
-                            visible: !window.compactLayout
-                            text: bridge ? bridge.engineNote : ""
-                            color: Theme.textMuted
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSizeXs
-                            wrapMode: Text.Wrap
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: qrZoomDialog.open()
+                        }
+                    }
+
+                    // 2. Compact Cafe Button when height is constrained (e.g. 14" laptop screen)
+                    Rectangle {
+                        id: qrCardCompact
+                        Layout.fillWidth: true
+                        Layout.leftMargin: Theme.spacingMd
+                        Layout.rightMargin: Theme.spacingMd
+                        visible: !window.compactLayout && window.compactHeight
+                        radius: Theme.radiusMd
+                        color: Theme.surfaceAlt
+                        border.color: Theme.borderSubtle
+                        border.width: 1
+                        implicitHeight: 38
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: Theme.spacingSm
+                            anchors.rightMargin: Theme.spacingSm
+                            spacing: Theme.spacingSm
+
+                            Text {
+                                text: "☕"
+                                font.pixelSize: 16
+                                verticalAlignment: Text.AlignVCenter
+                            }
+
+                            Label {
+                                text: qsTr("Tặng Tôi 1 ly Cafe")
+                                color: Theme.text
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSizeSm
+                                font.weight: Theme.fontWeightMedium
+                                Layout.fillWidth: true
+                                elide: Text.ElideRight
+                            }
+
+                            Label {
+                                text: qsTr("Mở QR")
+                                color: Theme.accent
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSizeXs
+                                font.weight: Theme.fontWeightBold
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: qrZoomDialog.open()
+                        }
+                    }
+
+                    // 3. Icon-only Cafe Button for compactLayout (icon rail)
+                    Button {
+                        Layout.alignment: Qt.AlignHCenter
+                        visible: window.compactLayout
+                        flat: true
+                        implicitWidth: 40
+                        implicitHeight: 40
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("☕ Tặng Tôi 1 ly Cafe")
+                        onClicked: qrZoomDialog.open()
+                        contentItem: Text {
+                            text: "☕"
+                            font.pixelSize: 20
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        background: Rectangle {
+                            radius: Theme.radiusMd
+                            color: parent.hovered ? Theme.surfaceHover : "transparent"
+                        }
+                    }
+
+                    Item {
+                        Layout.fillHeight: true
+                    }
+
+                    // --- Engine Hardware Status Card (FR-UX-3.3) -------------------
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.leftMargin: window.compactLayout ? Theme.spacingSm : Theme.spacingMd
+                        Layout.rightMargin: window.compactLayout ? Theme.spacingSm : Theme.spacingMd
+                        Layout.bottomMargin: window.compactHeight ? Theme.spacingXs : Theme.spacingSm
+                        radius: Theme.radiusMd
+                        color: Theme.surfaceAlt
+                        border.color: Theme.borderSubtle
+                        border.width: 1
+                        implicitHeight: engineCardCol.implicitHeight + (window.compactHeight ? Theme.spacingXs : Theme.spacingSm) * 2
+
+                        ColumnLayout {
+                            id: engineCardCol
+                            anchors.fill: parent
+                            anchors.margins: window.compactHeight ? Theme.spacingXs : Theme.spacingSm
+                            spacing: Theme.spacingXs
+
+                            RowLayout {
+                                spacing: Theme.spacingXs
+                                Rectangle {
+                                    width: 6
+                                    height: 6
+                                    radius: 3
+                                    color: Theme.success
+                                }
+                                Label {
+                                    text: qsTr("Phần cứng & Engine")
+                                    visible: !window.compactLayout
+                                    color: Theme.text
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontSizeXs
+                                    font.weight: Theme.fontWeightHeading
+                                }
+                                Item {
+                                    Layout.fillWidth: !window.compactLayout
+                                    visible: !window.compactLayout
+                                }
+                                StatusBadge {
+                                    visible: !window.compactLayout
+                                    dotVisible: false
+                                    text: {
+                                        if (!controller)
+                                            return qsTr("Đang kiểm tra...");
+                                        switch (controller.modelState) {
+                                        case "ready":
+                                            return qsTr("Sẵn sàng");
+                                        case "downloading":
+                                            return qsTr("Đang tải mô hình...");
+                                        case "validating":
+                                            return qsTr("Đang kiểm tra...");
+                                        case "failed":
+                                            return qsTr("Lỗi mô hình");
+                                        case "unavailable":
+                                            return qsTr("Chưa có mô hình");
+                                        default:
+                                            return qsTr("Đang kiểm tra...");
+                                        }
+                                    }
+                                    status: {
+                                        if (!controller)
+                                            return "neutral";
+                                        switch (controller.modelState) {
+                                        case "ready":
+                                            return "success";
+                                        case "failed":
+                                            return "error";
+                                        case "unavailable":
+                                            return "warning";
+                                        default:
+                                            return "neutral";
+                                        }
+                                    }
+                                }
+                            }
+
+                            Label {
+                                objectName: "engineReadout"
+                                Layout.fillWidth: true
+                                visible: !window.compactLayout
+                                text: bridge ? bridge.engineNote : ""
+                                color: Theme.textMuted
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSizeXs
+                                wrapMode: Text.Wrap
+                            }
                         }
                     }
                 }
@@ -560,7 +654,7 @@ ApplicationWindow {
         Rectangle {
             anchors.centerIn: parent
             width: Math.min(parent.width - 2 * Theme.spacingXl, 560)
-            implicitHeight: modelSetupCol.implicitHeight + Theme.spacingXl * 2
+            implicitHeight: Math.min(parent.height - 24, modelSetupCol.implicitHeight + Theme.spacingXl * 2)
             radius: Theme.radiusXl
             color: Theme.surfaceCard
             border.color: Theme.border
@@ -779,8 +873,8 @@ ApplicationWindow {
             }
             Rectangle {
                 Layout.alignment: Qt.AlignHCenter
-                width: 320
-                height: 320
+                width: Math.min(280, Math.max(160, window.height * 0.35))
+                height: width
                 radius: Theme.radiusMd
                 color: "#FFFFFF"
                 border.color: Theme.borderSubtle
@@ -847,7 +941,7 @@ ApplicationWindow {
         Rectangle {
             anchors.centerIn: parent
             width: Math.min(parent.width - 40, 520)
-            implicitHeight: gateCol.implicitHeight + Theme.spacingXl * 2
+            implicitHeight: Math.min(parent.height - 24, gateCol.implicitHeight + Theme.spacingXl * 2)
             radius: Theme.radiusLg
             color: Theme.bgElevated
             border.color: Theme.accent

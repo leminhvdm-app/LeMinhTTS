@@ -2,10 +2,10 @@
 ; Application: LeMinhTTS V1
 ; Offline Setup Installer with Wizard, Progress, Desktop Shortcut, and Uninstaller
 
-#define MyAppName "LeMinhTTS V1"
-#define MyAppVersion "1.0.0"
+#define MyAppName "LeMinhTTS V2"
+#define MyAppVersion "2.0.0"
 #define MyAppPublisher "Lê Minh"
-#define MyAppExeName "LeMinhTTS V1.exe"
+#define MyAppExeName "LeMinhTTS V2.exe"
 
 [Setup]
 ; App Identity
@@ -23,7 +23,7 @@ AllowNoIcons=yes
 
 ; Output Configuration
 OutputDir=..\dist
-OutputBaseFilename=LeMinhTTS_V1_Setup
+OutputBaseFilename=LeMinhTTS_V2_Setup
 SetupIconFile=..\icon_app.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 
@@ -51,7 +51,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 ; Copy all bundled distribution files including ONNX models, Qt runtime, and tools (ffmpeg, ffprobe, yt-dlp)
-Source: "..\dist\LeMinhTTS V1\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\LeMinhTTS V2\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; IconFilename: "{app}\{#MyAppExeName}"

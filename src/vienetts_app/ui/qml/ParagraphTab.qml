@@ -405,7 +405,7 @@ Pane {
                         id: playBtn
                         objectName: "playButton"
                         variant: "secondary"
-                        size: "lg"
+                        size: root.width > 0 && root.width < 750 ? "sm" : "md"
                         text: controller.replayActive ? qsTr("Dừng") : qsTr("Phát")
                         iconKind: controller.replayActive ? "stop" : "play"
                         enabled: controller.hasArtifact
@@ -431,7 +431,7 @@ Pane {
                         id: exportBtn
                         objectName: "exportButton"
                         variant: "secondary"
-                        size: "lg"
+                        size: root.width > 0 && root.width < 750 ? "sm" : "md"
                         text: qsTr("Xuất WAV")
                         iconKind: "download"
                         enabled: controller.hasArtifact
@@ -446,7 +446,7 @@ Pane {
                         id: exportMp3Btn
                         objectName: "exportMp3Button"
                         variant: "secondary"
-                        size: "lg"
+                        size: root.width > 0 && root.width < 750 ? "sm" : "md"
                         text: qsTr("Xuất MP3")
                         iconKind: "download"
                         enabled: controller.hasArtifact

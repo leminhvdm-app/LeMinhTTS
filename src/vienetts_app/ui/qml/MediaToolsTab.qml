@@ -199,7 +199,8 @@ Pane {
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
                                 font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fontSizeSm
+                                font.pixelSize: (typeof root !== "undefined" && root.width < 800) ? Theme.fontSizeXs : Theme.fontSizeSm
+                                elide: Text.ElideRight
                                 font.weight: subNavBtn.checked ? Theme.fontWeightBold : Theme.fontWeightNormal
                                 color: subNavBtn.checked ? Theme.accent : (subNavBtn.hovered ? Theme.text : Theme.textMuted)
                             }

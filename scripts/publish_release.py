@@ -78,7 +78,14 @@ def main() -> None:
             return
         new_version = val
 
-    clean_ver = new_version.lstrip("vV")
+    clean_ver = new_version.strip().lstrip("vV")
+    parts = clean_ver.split(".")
+    if parts and parts[0].isdigit():
+        if len(parts) == 1:
+            clean_ver = f"{parts[0]}.0.0"
+        elif len(parts) == 2:
+            clean_ver = f"{parts[0]}.{parts[1]}.0"
+
     major = clean_ver.split(".")[0]
     display_title = f"LeMinhTTS V{major}"
     setup_name = f"LeMinhTTS_V{major}_Setup.exe"

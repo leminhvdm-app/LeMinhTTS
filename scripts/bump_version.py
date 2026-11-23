@@ -18,12 +18,24 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def normalize_version(ver_str: str) -> str:
+    clean = ver_str.strip().lstrip("vV")
+    parts = clean.split(".")
+    if not parts or not parts[0].isdigit():
+        return clean
+    if len(parts) == 1:
+        return f"{parts[0]}.0.0"
+    if len(parts) == 2:
+        return f"{parts[0]}.{parts[1]}.0"
+    return clean
+
+
 def bump_version(new_version: str) -> None:
-    # Validate semver format
-    clean_ver = new_version.strip().lstrip("vV")
+    # Validate and normalize semver format (supports 'V3', '3', '2.1', '2.1.0')
+    clean_ver = normalize_version(new_version)
     parts = clean_ver.split(".")
     if len(parts) < 2 or not parts[0].isdigit():
-        print(f"Error: Invalid version format '{new_version}'. Expected format like 1.0.0 or 1.1")
+        print(f"Error: Invalid version format '{new_version}'. Expected format like V3, 3, 2.1, or 2.1.0")
         sys.exit(1)
 
     major = parts[0]

@@ -1,0 +1,26 @@
+singleton Theme 1.0 Theme.qml
+AppCard 1.0 components/AppCard.qml
+AppButton 1.0 components/AppButton.qml
+AppIconButton 1.0 components/AppIconButton.qml
+AppToggle 1.0 components/AppToggle.qml
+AppSlider 1.0 components/AppSlider.qml
+AppNumberField 1.0 components/AppNumberField.qml
+AppNotice 1.0 components/AppNotice.qml
+EmotionChip 1.0 components/EmotionChip.qml
+StatusBadge 1.0 components/StatusBadge.qml
+SectionLabel 1.0 components/SectionLabel.qml
+AppIcon 1.0 components/AppIcon.qml
+AppCombo 1.0 components/AppCombo.qml
+VoicePicker 1.0 components/VoicePicker.qml
+PageHeader 1.0 components/PageHeader.qml
+PageShell 1.0 components/PageShell.qml
+WaveformIndicator 1.0 WaveformIndicator.qml
+TextTab 1.0 TextTab.qml
+ParagraphTab 1.0 ParagraphTab.qml
+AudiobookTab 1.0 AudiobookTab.qml
+CloningTab 1.0 CloningTab.qml
+OcrTab 1.0 OcrTab.qml
+SttTab 1.0 SttTab.qml
+SettingsTab 1.0 SettingsTab.qml
+PlaybackWaveform 1.0 PlaybackWaveform.qml
+

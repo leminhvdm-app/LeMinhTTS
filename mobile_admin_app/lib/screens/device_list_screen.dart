@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../models/device_model.dart';
+import '../services/app_update_service.dart';
 import '../services/firebase_service.dart';
 import 'settings_screen.dart';
 
@@ -14,16 +15,90 @@ class DeviceListScreen extends StatefulWidget {
 
 class _DeviceListScreenState extends State<DeviceListScreen> {
   final FirebaseService _service = FirebaseService();
+  final AppUpdateService _updateService = AppUpdateService();
   List<DeviceModel> _allDevices = [];
   List<DeviceModel> _filteredDevices = [];
   bool _isLoading = false;
   String _searchQuery = '';
   String _selectedTab = 'all'; // 'all', 'active', 'blocked', 'pending'
+  AppUpdateInfo? _updateInfo;
 
   @override
   void initState() {
     super.initState();
     _fetchDevices();
+    _checkAppUpdate(silent: true);
+  }
+
+  Future<void> _checkAppUpdate({bool silent = true}) async {
+    try {
+      final info = await _updateService.checkForUpdate();
+      if (info.hasUpdate && mounted) {
+        setState(() => _updateInfo = info);
+        _showUpdateDialog(info);
+      } else if (!silent && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bạn đang sử dụng phiên bản Admin mới nhất (V${AppUpdateService.currentVersion})'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (_) {}
+  }
+
+  void _showUpdateDialog(AppUpdateInfo info) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: Row(
+          children: [
+            const Icon(Icons.system_update_rounded, color: Color(0xFF38BDF8)),
+            const SizedBox(width: 10),
+            Text('Bản cập nhật V${info.latestVersion}', style: const TextStyle(color: Colors.white, fontSize: 18)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Phiên bản hiện tại: V${info.currentVersion}', style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+            const SizedBox(height: 12),
+            const Text('Nội dung cập nhật:', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.all(10),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(info.changelog, style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 12)),
+            ),
+          ],
+        ),
+        actions: [
+          if (!info.forceUpdate)
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Để sau', style: TextStyle(color: Colors.grey)),
+            ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF38BDF8),
+              foregroundColor: Colors.black,
+            ),
+            icon: const Icon(Icons.download, size: 18),
+            label: const Text('Cập nhật ngay', style: TextStyle(fontWeight: FontWeight.bold)),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _updateService.launchUpdateUrl(info.apkUrl);
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _fetchDevices() async {
@@ -303,11 +378,41 @@ class _DeviceListScreenState extends State<DeviceListScreen> {
         child: const Icon(Icons.add),
       ),
       body: RefreshIndicator(
-        onRefresh: _fetchDevices,
+        onRefresh: () async {
+          await _fetchDevices();
+          await _checkAppUpdate(silent: false);
+        },
         color: const Color(0xFF38BDF8),
         backgroundColor: const Color(0xFF1E293B),
         child: Column(
           children: [
+            if (_updateInfo != null && _updateInfo!.hasUpdate)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                color: const Color(0xFF38BDF8).withValues(alpha: 0.15),
+                child: Row(
+                  children: [
+                    const Icon(Icons.system_update, color: Color(0xFF38BDF8), size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Có bản cập nhật Admin mới V${_updateInfo!.latestVersion}',
+                        style: const TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF38BDF8),
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                        minimumSize: const Size(60, 32),
+                      ),
+                      onPressed: () => _showUpdateDialog(_updateInfo!),
+                      child: const Text('Cập nhật', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ),
             // Stats summary row
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

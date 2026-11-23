@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/app_update_service.dart';
 import '../services/firebase_service.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -10,14 +11,91 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final FirebaseService _service = FirebaseService();
+  final AppUpdateService _updateService = AppUpdateService();
   final _urlCtrl = TextEditingController();
   final _pinCtrl = TextEditingController();
   bool _isSaving = false;
+  bool _isCheckingUpdate = false;
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
+  }
+
+  Future<void> _checkUpdate() async {
+    setState(() => _isCheckingUpdate = true);
+    try {
+      final info = await _updateService.checkForUpdate();
+      if (!mounted) return;
+      if (info.hasUpdate) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: const Color(0xFF1E293B),
+            title: Row(
+              children: [
+                const Icon(Icons.system_update_rounded, color: Color(0xFF38BDF8)),
+                const SizedBox(width: 10),
+                Text('Có bản cập nhật V${info.latestVersion}', style: const TextStyle(color: Colors.white, fontSize: 18)),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Phiên bản hiện tại: V${info.currentVersion}', style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                const SizedBox(height: 12),
+                const Text('Nội dung cập nhật:', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F172A),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(info.changelog, style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 12)),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Đóng', style: TextStyle(color: Colors.grey)),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF38BDF8),
+                  foregroundColor: Colors.black,
+                ),
+                icon: const Icon(Icons.download, size: 18),
+                label: const Text('Tải bản mới', style: TextStyle(fontWeight: FontWeight.bold)),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _updateService.launchUpdateUrl(info.apkUrl);
+                },
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bạn đang sử dụng phiên bản Admin mới nhất (V${AppUpdateService.currentVersion})'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi kiểm tra: $e'), backgroundColor: Colors.redAccent),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isCheckingUpdate = false);
+    }
   }
 
   Future<void> _loadSettings() async {
@@ -108,6 +186,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 filled: true,
                 fillColor: const Color(0xFF1E293B),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Phiên bản ứng dụng Admin',
+              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFF334155)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Color(0xFF38BDF8), size: 22),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('LeMinhTTS Quản Lý', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        Text('Phiên bản: V${AppUpdateService.currentVersion}', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF38BDF8),
+                      side: const BorderSide(color: Color(0xFF38BDF8)),
+                    ),
+                    icon: _isCheckingUpdate
+                        ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF38BDF8)))
+                        : const Icon(Icons.sync, size: 16),
+                    label: const Text('Kiểm tra', style: TextStyle(fontSize: 12)),
+                    onPressed: _isCheckingUpdate ? null : _checkUpdate,
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 32),

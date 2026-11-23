@@ -27,8 +27,8 @@ OutputBaseFilename=LeMinhTTS_V2_Setup
 SetupIconFile=..\icon_app.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 
-; Compression & Offline Packaging
-Compression=lzma2/ultra64
+; Compression & Offline Packaging (lzma2/normal ensures fast builds in ~1 min instead of 10 mins)
+Compression=lzma2/normal
 SolidCompression=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible

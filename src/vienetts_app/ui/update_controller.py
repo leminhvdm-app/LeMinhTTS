@@ -264,14 +264,15 @@ class UpdateController(QObject):
             self.statusChanged.emit()
 
             # Launch installer detached
-            # On Windows, Inno Setup handles elevation and closes old version if running
             if os.name == "nt":
                 subprocess.Popen([str(installer_path)], shell=True)
             else:
                 subprocess.Popen([str(installer_path)])
 
-            # Exit current app cleanly after a short pause so installer takes over
-            QCoreApplication.quit()
+            # Exit current app immediately so Windows releases all file locks on _internal and .exe
+            import time
+            time.sleep(0.5)
+            os._exit(0)
 
         except Exception as e:
             logger.error("Download update failed: %s", e)

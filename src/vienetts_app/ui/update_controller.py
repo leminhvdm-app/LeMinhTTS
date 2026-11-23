@@ -86,7 +86,8 @@ class UpdateController(QObject):
 
     @Property(str, constant=True)
     def currentVersion(self) -> str:
-        return __version__
+        major = __version__.split(".")[0] if "." in __version__ else __version__
+        return major
 
     @Property(str, notify=latestVersionChanged)
     def latestVersion(self) -> str:
@@ -176,19 +177,21 @@ class UpdateController(QObject):
                 self._download_asset_url = ""
                 self._download_asset_name = ""
 
+            major = __version__.split(".")[0] if "." in __version__ else __version__
             if remote_tuple > current_tuple:
                 self._is_update_available = True
                 self._status_message = f"Đã có phiên bản mới: V{remote_ver_str}"
             else:
                 self._is_update_available = False
-                self._status_message = f"Bạn đang sử dụng phiên bản mới nhất (V{__version__})"
+                self._status_message = f"Bạn đang sử dụng phiên bản mới nhất (V{major})"
 
         except urllib.error.HTTPError as e:
+            major = __version__.split(".")[0] if "." in __version__ else __version__
             if e.code == 404:
                 self._is_update_available = False
-                self._status_message = "Chưa tìm thấy bản phát hành nào trên GitHub."
+                self._status_message = f"Bạn đang sử dụng phiên bản mới nhất (V{major})"
             else:
-                self._status_message = f"Lỗi máy chủ GitHub ({e.code})"
+                self._status_message = f"Lỗi máy chủ cập nhật ({e.code})"
             logger.warning("GitHub update check HTTP error: %s", e)
         except Exception as e:
             self._is_update_available = False

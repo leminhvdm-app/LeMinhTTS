@@ -802,6 +802,31 @@ ApplicationWindow {
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontSizeSm
             }
+
+            RowLayout {
+                Layout.alignment: Qt.AlignHCenter
+                spacing: Theme.spacingSm
+
+                Label {
+                    text: qsTr("Mã máy:")
+                    color: Theme.textMuted
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontSizeSm
+                }
+
+                Label {
+                    text: typeof licenseController !== "undefined" ? licenseController.machineKey : ""
+                    color: Theme.accent
+                    font.family: "Consolas, monospace"
+                    font.pixelSize: Theme.fontSizeSm
+                    font.weight: Theme.fontWeightBold
+                }
+
+                Button {
+                    text: qsTr("Sao chép")
+                    onClicked: if (typeof licenseController !== "undefined") licenseController.copyMachineKey()
+                }
+            }
         }
     }
 

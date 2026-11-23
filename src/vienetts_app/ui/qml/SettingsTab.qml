@@ -1140,7 +1140,7 @@ Pane {
                             }
 
                             Label {
-                                text: qsTr("Phiên bản hiện tại: V") + (typeof updateController !== "undefined" ? updateController.currentVersion : "1.0.0")
+                                text: qsTr("Phiên bản hiện tại: ") + Qt.application.displayName.replace("LeMinhTTS ", "")
                                 color: Theme.textMuted
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontSizeSm
@@ -1161,23 +1161,6 @@ Pane {
                             }
 
                             RowLayout {
-                                spacing: Theme.spacingXs
-                                Label {
-                                    text: qsTr("Mã máy (Key): ")
-                                    color: Theme.textMuted
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontSizeSm
-                                }
-                                Label {
-                                    text: typeof licenseController !== "undefined" ? licenseController.machineKey : ""
-                                    color: Theme.accent
-                                    font.family: "Consolas, monospace"
-                                    font.pixelSize: Theme.fontSizeSm
-                                    font.weight: Theme.fontWeightBold
-                                }
-                            }
-
-                            RowLayout {
                                 spacing: Theme.spacingSm
 
                                 AppButton {
@@ -1187,13 +1170,6 @@ Pane {
                                     busy: typeof updateController !== "undefined" && updateController.isChecking
                                     enabled: typeof updateController !== "undefined" && !updateController.isChecking && !updateController.isDownloading
                                     onClicked: if (typeof updateController !== "undefined") updateController.checkForUpdates(false)
-                                }
-
-                                AppButton {
-                                    text: qsTr("GitHub Release")
-                                    variant: "quiet"
-                                    size: "sm"
-                                    onClicked: if (typeof updateController !== "undefined") updateController.openReleasePage()
                                 }
                             }
 
@@ -1315,6 +1291,43 @@ Pane {
                                     fillMode: Image.PreserveAspectFit
                                     smooth: true
                                     mipmap: true
+                                }
+                            }
+
+                            ColumnLayout {
+                                Layout.alignment: Qt.AlignHCenter
+                                spacing: 2
+
+                                Label {
+                                    text: qsTr("Mã máy của bạn:")
+                                    color: Theme.textMuted
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: 11
+                                    Layout.alignment: Qt.AlignHCenter
+                                }
+
+                                RowLayout {
+                                    Layout.alignment: Qt.AlignHCenter
+                                    spacing: 4
+
+                                    Label {
+                                        text: typeof licenseController !== "undefined" ? licenseController.machineKey : ""
+                                        color: Theme.accent
+                                        font.family: "Consolas, monospace"
+                                        font.pixelSize: 11
+                                        font.weight: Theme.fontWeightBold
+                                        Layout.alignment: Qt.AlignHCenter
+                                    }
+
+                                    Button {
+                                        implicitWidth: 20
+                                        implicitHeight: 20
+                                        padding: 0
+                                        text: "📋"
+                                        ToolTip.visible: hovered
+                                        ToolTip.text: qsTr("Sao chép mã máy")
+                                        onClicked: if (typeof licenseController !== "undefined") licenseController.copyMachineKey()
+                                    }
                                 }
                             }
                         }
